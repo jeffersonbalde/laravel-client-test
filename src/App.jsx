@@ -1,5 +1,5 @@
   import "bootstrap/dist/css/bootstrap.min.css";
-  import { BrowserRouter, Routes, Route, HashRouter } from "react-router-dom";
+  import { BrowserRouter, Routes, Route } from "react-router-dom";
   import Home from "./pages/Home/Home";
   import About from "./pages/About/About";
   import "./styles/style.scss";
@@ -13,7 +13,7 @@
   function App() {
     return (
       <>
-        <HashRouter>
+        <BrowserRouter>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<About />} />
@@ -43,7 +43,7 @@
               }
             />
           </Routes>
-        </HashRouter>
+        </BrowserRouter>
         <ToastContainer position="top-center" />
       </>
     );
