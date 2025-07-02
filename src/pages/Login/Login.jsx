@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import Header from "../../components/layout/Header";
 import Footer from "../../components/layout/Footer";
 import { useForm } from "react-hook-form";
@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/Auth";
 
 const Login = () => {
+  const [loading, setLoading] = useState(false); // <-- loading state
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
   const {
@@ -17,35 +18,38 @@ const Login = () => {
   } = useForm();
 
   const onSubmit = async (data) => {
-    const res = await fetch(
-      `${import.meta.env.VITE_LARAVEL_API}/authenticate`,
-      {
-        method: "POST",
-        headers: {
-          "Content-type": "application/json",
-        },
-        body: JSON.stringify(data),
+    setLoading(true);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_LARAVEL_API}/authenticate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-type": "application/json",
+          },
+          body: JSON.stringify(data),
+        }
+      );
+
+      const result = await res.json();
+
+      if (result.status == false) {
+        toast.error(result.message);
+      } else {
+        const userInfo = {
+          id: result.id,
+          token: result.token,
+        };
+
+        localStorage.setItem("userInfo", JSON.stringify(userInfo));
+        login(userInfo);
+        navigate("/admin/dashboard");
       }
-    );
-
-    const result = await res.json();
-
-    if (result.status == false) {
-      toast.error(result.message);
-    } else {
-      const userInfo = {
-        id: result.id,
-        token: result.token,
-      };
-
-      localStorage.setItem("userInfo", JSON.stringify(userInfo));
-
-      login(userInfo);
-
-      navigate("/admin/dashboard");
+    } catch (error) {
+      toast.error("An error occurred. Please try again.");
+    } finally {
+      setLoading(false);
     }
-
-    // console.log(result);
   };
 
   return (
@@ -101,8 +105,23 @@ const Login = () => {
                       </p>
                     )}
                   </div>
-                  <button type="submit" className="btn btn-primary">
-                    Login
+                  <button
+                    type="submit"
+                    className="btn btn-primary w-100"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <span
+                          className="spinner-border spinner-border-sm me-2"
+                          role="status"
+                          aria-hidden="true"
+                        ></span>
+                        Logging in...
+                      </>
+                    ) : (
+                      "Login"
+                    )}
                   </button>
                 </form>
               </div>
