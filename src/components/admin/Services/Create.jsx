@@ -88,58 +88,54 @@ const Create = ({ placeholder }) => {
     }
   };
 
-const handleFile = async (e) => {
-  setImageLoading(true);
-  const formData = new FormData();
-  const file = e.target.files[0];
+  const handleFile = async (e) => {
+    setImageLoading(true);
+    const formData = new FormData();
+    const file = e.target.files[0];
 
-  if (!file) {
-    toast.error("No file selected.");
-    setImageLoading(false);
-    return;
-  }
-
-  setPreviewUrl(URL.createObjectURL(file));
-  formData.append("image", file);
-
-  try {
-    const res = await fetch(
-      `${import.meta.env.VITE_LARAVEL_API}/temp-images`,
-      {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token()}`,
-        },
-        body: formData,
-      }
-    );
-
-    const result = await res.json();
-
-    if (!result.status) {
-      if (result.errors && result.errors.image && result.errors.image[0]) {
-        toast.error(result.errors.image[0]);
-      } else {
-        toast.error("Image upload failed.");
-      }
-      setPreviewUrl(null);
-      setImageID(null);
-    } else if (result.data && result.data.id) {
-      setImageID(result.data.id);
-    } else {
-      toast.error("Unexpected server response.");
-      setImageID(null);
+    if (!file) {
+      toast.error("No file selected.");
+      setImageLoading(false);
+      return;
     }
-  } catch (error) {
-    toast.error("Failed to upload image.");
-    setPreviewUrl(null);
-    console.error(error);
-  } finally {
-    setImageLoading(false);
-  }
-};
 
+    setPreviewUrl(URL.createObjectURL(file));
+
+    formData.append("image", file);
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_LARAVEL_API}/temp-images`,
+        {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token()}`,
+          },
+          body: formData,
+        }
+      );
+
+      const text = await res.text(); // log raw response
+      console.log("Upload response (raw):", text);
+
+      const result = JSON.parse(text);
+
+      if (result.status === false) {
+        toast.error(result.errors?.image?.[0] || "Upload failed.");
+        setPreviewUrl(null);
+      } else if (result.data?.id) {
+        setImageID(result.data.id);
+      } else {
+        toast.error("Unexpected response from server.");
+        setImageID(null);
+      }
+    } catch (error) {
+      toast.error("Failed to upload image.");
+      setPreviewUrl(null);
+      console.error(error);
+    }
+  };
 
   return (
     <div>
