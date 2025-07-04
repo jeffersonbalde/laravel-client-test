@@ -88,51 +88,58 @@ const Create = ({ placeholder }) => {
     }
   };
 
-  const handleFile = async (e) => {
-    setImageLoading(true);
-    const formData = new FormData();
-    const file = e.target.files[0];
+const handleFile = async (e) => {
+  setImageLoading(true);
+  const formData = new FormData();
+  const file = e.target.files[0];
 
-    if (!file) {
-      toast.error("No file selected.");
-      setImageLoading(false);
-      return;
-    }
+  if (!file) {
+    toast.error("No file selected.");
+    setImageLoading(false);
+    return;
+  }
 
-    setPreviewUrl(URL.createObjectURL(file));
+  setPreviewUrl(URL.createObjectURL(file));
+  formData.append("image", file);
 
-    formData.append("image", file);
-
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_LARAVEL_API}/temp-images`,
-        {
-          method: "POST",
-          headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${token()}`,
-          },
-          body: formData,
-        }
-      );
-
-      const result = await res.json();
-
-      if (result.status === false) {
-        toast.error(result.errors.image[0]);
-        setPreviewUrl(null);
-      } else {
-        // toast.success("Image uploaded successfully.");
-        setImageID(result.data.id);
+  try {
+    const res = await fetch(
+      `${import.meta.env.VITE_LARAVEL_API}/temp-images`,
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token()}`,
+        },
+        body: formData,
       }
-    } catch (error) {
-      toast.error("Failed to upload image.");
+    );
+
+    const result = await res.json();
+
+    if (!result.status) {
+      if (result.errors && result.errors.image && result.errors.image[0]) {
+        toast.error(result.errors.image[0]);
+      } else {
+        toast.error("Image upload failed.");
+      }
       setPreviewUrl(null);
-      console.error(error);
-    } finally {
-      setImageLoading(false);
+      setImageID(null);
+    } else if (result.data && result.data.id) {
+      setImageID(result.data.id);
+    } else {
+      toast.error("Unexpected server response.");
+      setImageID(null);
     }
-  };
+  } catch (error) {
+    toast.error("Failed to upload image.");
+    setPreviewUrl(null);
+    console.error(error);
+  } finally {
+    setImageLoading(false);
+  }
+};
+
 
   return (
     <div>
