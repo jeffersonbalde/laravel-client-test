@@ -58,8 +58,8 @@ const Edit = ({ placeholder }) => {
         setContent(result.data.content);
 
         // populate form fields
-            setValue("title", result.data.title);
-            setValue("slug", result.data.slug);
+        setValue("title", result.data.title);
+        setValue("slug", result.data.slug);
         setValue("short_description", result.data.short_description);
         setValue("status", result.data.status.toString());
 
@@ -163,12 +163,21 @@ const Edit = ({ placeholder }) => {
       const result = await res.json();
       console.log("Upload response (raw):", result);
 
-      if (result.status === false) {
-        toast.error(result.errors.image[0]);
-        setPreviewUrl(null);
-      } else {
-        // toast.success("Image uploaded successfully.");
+      //   if (result.status === false) {
+      //     toast.error(result.errors.image[0]);
+      //     setPreviewUrl(null);
+      //   } else {
+      //     // toast.success("Image uploaded successfully.");
+      //     setImageID(result.data.id);
+      //   }
+
+      if (result.status === true && result.data && result.data.id) {
         setImageID(result.data.id);
+      } else {
+        toast.error(
+          result?.errors?.image?.[0] || result.message || "Upload failed."
+        );
+        setPreviewUrl(null);
       }
     } catch (error) {
       toast.error("Failed to upload image.");
@@ -338,7 +347,7 @@ const Edit = ({ placeholder }) => {
                                 ? previewUrl
                                 : `${
                                     import.meta.env.VITE_LARAVEL_FILE_API
-                                  }/uploads/services/small/${services.image}`
+                                  }/uploads/temp/${services.image}`
                             }
                             alt="Current Service"
                             onLoad={() => setImageLoaded(true)}
