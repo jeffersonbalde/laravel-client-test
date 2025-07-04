@@ -58,8 +58,8 @@ const Edit = ({ placeholder }) => {
         setContent(result.data.content);
 
         // populate form fields
-        setValue("title", result.data.title);
-        setValue("slug", result.data.slug);
+            setValue("title", result.data.title);
+            setValue("slug", result.data.slug);
         setValue("short_description", result.data.short_description);
         setValue("status", result.data.status.toString());
 
@@ -143,8 +143,6 @@ const Edit = ({ placeholder }) => {
       return;
     }
 
-    setImageLoaded(false);
-
     setPreviewUrl(URL.createObjectURL(file));
 
     formData.append("image", file);
@@ -163,6 +161,7 @@ const Edit = ({ placeholder }) => {
       );
 
       const result = await res.json();
+      console.log("Upload response (raw):", result);
 
       if (result.status === false) {
         toast.error(result.errors.image[0]);

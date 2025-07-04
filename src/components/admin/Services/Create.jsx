@@ -116,24 +116,22 @@ const Create = ({ placeholder }) => {
         }
       );
 
-      const text = await res.text(); // log raw response
-      console.log("Upload response (raw):", text);
-
-      const result = JSON.parse(text);
+      const result = await res.json();
+      console.log("Upload response (raw):", result);
 
       if (result.status === false) {
-        toast.error(result.errors?.image?.[0] || "Upload failed.");
+        toast.error(result.errors.image[0]);
         setPreviewUrl(null);
-      } else if (result.data?.id) {
-        setImageID(result.data.id);
       } else {
-        toast.error("Unexpected response from server.");
-        setImageID(null);
+        // toast.success("Image uploaded successfully.");
+        setImageID(result.data.id);
       }
     } catch (error) {
       toast.error("Failed to upload image.");
       setPreviewUrl(null);
       console.error(error);
+    } finally {
+      setImageLoading(false);
     }
   };
 
