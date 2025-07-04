@@ -18,6 +18,7 @@ const Edit = ({ placeholder }) => {
   const [loadingData, setLoadingData] = useState(true);
   const [loadingSubmit, setLoadingSubmit] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [newImageSelected, setNewImageSelected] = useState(false);
 
   const editor = useRef(null);
   const [content, setContent] = useState("");
@@ -34,6 +35,7 @@ const Edit = ({ placeholder }) => {
     register,
     handleSubmit,
     setValue,
+    setFocus,
     formState: { errors },
   } = useForm();
 
@@ -62,8 +64,8 @@ const Edit = ({ placeholder }) => {
         setValue("slug", result.data.slug);
         setValue("short_description", result.data.short_description);
         setValue("status", result.data.status.toString());
-
-        // console.log(result.data);
+        setFocus("title");
+        console.log(result.data);
       } catch (error) {
         toast.error("Failed to load service data.");
         console.error(error);
@@ -143,6 +145,15 @@ const Edit = ({ placeholder }) => {
       return;
     }
 
+    const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Only PNG, JPG, JPEG, and GIF files are allowed.");
+      e.target.value = ""; // Clear input
+      setImageLoading(false);
+      return;
+    }
+
+    setNewImageSelected(true);
     setPreviewUrl(URL.createObjectURL(file));
 
     formData.append("image", file);
@@ -173,10 +184,12 @@ const Edit = ({ placeholder }) => {
 
       if (result.status === true && result.data && result.data.id) {
         setImageID(result.data.id);
+        setNewImageSelected(true);
       } else {
         toast.error(
           result?.errors?.image?.[0] || result.message || "Upload failed."
         );
+        setNewImageSelected(false);
         setPreviewUrl(null);
       }
     } catch (error) {
@@ -240,6 +253,7 @@ const Edit = ({ placeholder }) => {
                             errors.title && "is-invalid"
                           }`}
                           placeholder="Name"
+                          autoFocus 
                         />
                         {errors.title && (
                           <p className="invalid-feedback">
@@ -296,7 +310,11 @@ const Edit = ({ placeholder }) => {
                           Image
                         </label>
                         <br />
-                        <input type="file" onChange={handleFile} />
+                        <input
+                          type="file"
+                          accept="image/png, image/jpeg, image/jpg, image/gif"
+                          onChange={handleFile}
+                        />
                       </div>
 
                       {/* {previewUrl && (
@@ -336,35 +354,61 @@ const Edit = ({ placeholder }) => {
                       )} */}
 
                       <div className="mb-3">
-                        <label className="form-label">Current Image</label>
-                        <div className="image-placeholder">
-                          {(!imageLoaded || imageLoading) && (
-                            <div className="image-shimmer"></div>
+                        <label className="form-label">Image Preview</label>
+                        <div
+                          className="image-placeholder"
+                          style={{
+                            position: "relative",
+                            height: "200px",
+                            width: "200px",
+                          }}
+                        >
+                          {(!imageLoaded || imageLoading) &&
+                            !newImageSelected && (
+                              <div className="image-shimmer"></div>
+                            )}
+
+                          {/* Show selected image preview if available */}
+                          {previewUrl && newImageSelected ? (
+                            <img
+                              src={previewUrl}
+                              alt="New Preview"
+                              className="image-loaded"
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                                borderRadius: "8px",
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                              }}
+                            />
+                          ) : (
+                            // Fallback to original image if no new image is selected
+                            services?.image && (
+                              <img
+                                src={`${
+                                  import.meta.env.VITE_LARAVEL_FILE_API
+                                }/uploads/services/${services.image}`}
+                                alt="Current Image"
+                                onLoad={() => setImageLoaded(true)}
+                                onError={() => setImageLoaded(true)}
+                                className={
+                                  imageLoaded ? "image-loaded" : "image-hidden"
+                                }
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                  borderRadius: "8px",
+                                  position: "absolute",
+                                  top: 0,
+                                  left: 0,
+                                }}
+                              />
+                            )
                           )}
-                          <img
-                            src={
-                              previewUrl
-                                ? previewUrl
-                                : `${
-                                    import.meta.env.VITE_LARAVEL_FILE_API
-                                  }/uploads/temp/${services.image}`
-                            }
-                            alt="Current Service"
-                            onLoad={() => setImageLoaded(true)}
-                            onError={() => setImageLoaded(true)}
-                            className={
-                              imageLoaded ? "image-loaded" : "image-hidden"
-                            }
-                            style={{
-                              width: "200px",
-                              height: "200px",
-                              objectFit: "cover",
-                              borderRadius: "8px",
-                              position: "absolute",
-                              top: 0,
-                              left: 0,
-                            }}
-                          />
                         </div>
                       </div>
 

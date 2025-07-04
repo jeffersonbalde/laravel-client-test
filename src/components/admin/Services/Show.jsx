@@ -122,71 +122,73 @@ const Show = () => {
                   </div>
                   <hr />
 
-                  <table className="table table-striped">
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th>Slug</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {loading ? (
+                  <div className="table-responsive">
+                    <table className="table table-striped">
+                      <thead>
                         <tr>
-                          <td colSpan="5" className="text-center">
-                            <div
-                              className="spinner-border text-primary"
-                              role="status"
-                            >
-                              <span className="visually-hidden">
-                                Loading...
-                              </span>
-                            </div>
-                          </td>
+                          <th>ID</th>
+                          <th>Name</th>
+                          <th>Slug</th>
+                          <th>Status</th>
+                          <th>Action</th>
                         </tr>
-                      ) : services.length === 0 ? (
-                        <tr>
-                          <td colSpan="5" className="text-center">
-                            No services found.
-                          </td>
-                        </tr>
-                      ) : (
-                        services.map((service) => (
-                          <tr key={`service-${service.id}`}>
-                            <td>{service.id}</td>
-                            <td>{service.title}</td>
-                            <td>{service.slug}</td>
-                            <td>
-                              {service.status == 1 ? "Active" : "Inactive"}
-                            </td>
-                            <td>
-                              <div className="d-flex gap-2">
-                                <Link
-                                  to={`/admin/services/edit/${service.id}`}
-                                  className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1"
-                                >
-                                  <i className="bi bi-pencil-square"></i> Edit
-                                </Link>
-                                <button
-                                  onClick={() => deleteServices(service.id)}
-                                  className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
-                                >
-                                  <i className="bi bi-trash"></i> Delete
-                                </button>
+                      </thead>
+                      <tbody>
+                        {loading ? (
+                          <tr>
+                            <td colSpan="5" className="text-center">
+                              <div
+                                className="spinner-border text-primary"
+                                role="status"
+                              >
+                                <span className="visually-hidden">
+                                  Loading...
+                                </span>
                               </div>
                             </td>
                           </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                        ) : services.length === 0 ? (
+                          <tr>
+                            <td colSpan="5" className="text-center">
+                              No services found.
+                            </td>
+                          </tr>
+                        ) : (
+                          services.map((service) => (
+                            <tr key={`service-${service.id}`}>
+                              <td>{service.id}</td>
+                              <td>{service.title}</td>
+                              <td>{service.slug}</td>
+                              <td>
+                                {service.status == 1 ? "Active" : "Inactive"}
+                              </td>
+                              <td>
+                                <div className="d-flex gap-2">
+                                  <Link
+                                    to={`/admin/services/edit/${service.id}`}
+                                    className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1"
+                                  >
+                                    <i className="bi bi-pencil-square"></i> Edit
+                                  </Link>
+                                  <button
+                                    onClick={() => deleteServices(service.id)}
+                                    className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
+                                  >
+                                    <i className="bi bi-trash"></i> Delete
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>  
+        </div>
       </main>
 
       {/* {deleting && (

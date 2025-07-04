@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from "react";
+import React, { useState, useRef, useMemo, useEffect } from "react";
 import JoditEditor from "jodit-react";
 import Header from "../../layout/Header";
 import AdminSidebar from "../../layout/AdminSidebar";
@@ -36,31 +36,31 @@ const Create = ({ placeholder }) => {
   const navigate = useNavigate();
 
   const onSubmit = async (data) => {
+    setLoading(true); // ✅ enable button loading state
     const newData = { ...data, content: content, imageId: imageId };
 
-    // Step 1: Confirm
-    const confirmResult = await Swal.fire({
-      title: "Are you sure?",
-      text: "Do you want to save this service?",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "Yes, save it!",
-      cancelButtonText: "Cancel",
-    });
-
-    if (!confirmResult.isConfirmed) return; // Exit if cancelled
-
-    // Step 2: Show loading dialog
-    Swal.fire({
-      title: "Saving...",
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      didOpen: () => {
-        Swal.showLoading();
-      },
-    });
-
     try {
+      const confirmResult = await Swal.fire({
+        title: "Are you sure?",
+        text: "Do you want to save this service?",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Yes, save it!",
+        cancelButtonText: "Cancel",
+      });
+
+      if (!confirmResult.isConfirmed) {
+        setLoading(false); // ✅ reset loading if cancelled
+        return;
+      }
+
+      Swal.fire({
+        title: "Saving...",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
       const res = await fetch(`${import.meta.env.VITE_LARAVEL_API}/services`, {
         method: "POST",
         headers: {
@@ -72,17 +72,24 @@ const Create = ({ placeholder }) => {
       });
 
       const result = await res.json();
-
-      Swal.close(); // Close loading modal
+      Swal.close();
+      setLoading(false); // ✅ stop spinner
 
       if (result.status === true) {
         toast.success(result.message);
         navigate("/admin/services");
       } else {
-        toast.error(result.message);
+        if (result.errors) {
+          Object.entries(result.errors).forEach(([field, messages]) => {
+            toast.error(`${field}: ${messages[0]}`);
+          });
+        } else {
+          toast.error(result.message || "Something went wrong.");
+        }
       }
     } catch (error) {
       Swal.close();
+      setLoading(false); // ✅ stop spinner
       toast.error("An error occurred. Please try again.");
       console.error(error);
     }
@@ -95,6 +102,14 @@ const Create = ({ placeholder }) => {
 
     if (!file) {
       toast.error("No file selected.");
+      setImageLoading(false);
+      return;
+    }
+
+    const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Only PNG, JPG, JPEG, and GIF files are allowed.");
+      e.target.value = ""; // Clear input
       setImageLoading(false);
       return;
     }
@@ -187,6 +202,7 @@ const Create = ({ placeholder }) => {
                           errors.title && "is-invalid"
                         }`}
                         placeholder="Name"
+                        autoFocus
                       />
                       {errors.title && (
                         <p className="invalid-feedback">
@@ -243,7 +259,11 @@ const Create = ({ placeholder }) => {
                         Image
                       </label>
                       <br />
-                      <input type="file" onChange={handleFile} />
+                      <input
+                        type="file"
+                        accept="image/png, image/jpeg, image/jpg, image/gif"
+                        onChange={handleFile}
+                      />
                     </div>
 
                     {imageLoading ? (
