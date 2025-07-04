@@ -119,12 +119,21 @@ const Create = ({ placeholder }) => {
       const result = await res.json();
       console.log("Upload response (raw):", result);
 
-      if (result.status === false) {
-        toast.error(result.errors.image[0]);
-        setPreviewUrl(null);
-      } else {
-        // toast.success("Image uploaded successfully.");
+      // if (result.status === false) {
+      //   toast.error(result.errors.image[0]);
+      //   setPreviewUrl(null);
+      // } else {
+      //   // toast.success("Image uploaded successfully.");
+      //   setImageID(result.data.id);
+      // }
+
+      if (result.status === true && result.data && result.data.id) {
         setImageID(result.data.id);
+      } else {
+        toast.error(
+          result?.errors?.image?.[0] || result.message || "Upload failed."
+        );
+        setPreviewUrl(null);
       }
     } catch (error) {
       toast.error("Failed to upload image.");
