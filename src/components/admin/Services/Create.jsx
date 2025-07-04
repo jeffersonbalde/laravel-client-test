@@ -7,8 +7,14 @@ import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { token } from "../../../utils/http";
 import { toast } from "react-toastify";
+import Swal from "sweetalert2";
 
 const Create = ({ placeholder }) => {
+  const [loading, setLoading] = useState(false);
+  const [imageId, setImageID] = useState(null);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
+
   const editor = useRef(null);
   const [content, setContent] = useState("");
 
@@ -30,41 +36,102 @@ const Create = ({ placeholder }) => {
   const navigate = useNavigate();
 
   const onSubmit = async (data) => {
-    const newData = { ...data, content: content };
-    const res = await fetch(`${import.meta.env.VITE_LARAVEL_API}/services`, {
-      method: "POST",
-      headers: {
-        "Content-type": "application/json",
-        Accept: "application/json",
-        Authorization: `Bearer ${token()}`,
-      },
-      body: JSON.stringify(newData),
+    const newData = { ...data, content: content, imageId: imageId };
+
+    // Step 1: Confirm
+    const confirmResult = await Swal.fire({
+      title: "Are you sure?",
+      text: "Do you want to save this service?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Yes, save it!",
+      cancelButtonText: "Cancel",
     });
 
-    const result = await res.json();
+    if (!confirmResult.isConfirmed) return; // Exit if cancelled
 
-    if (result.status == true) {
-      toast.success(result.message);
-      navigate("/admin/services");
-    } else {
-      toast.error(result.message);
+    // Step 2: Show loading dialog
+    Swal.fire({
+      title: "Saving...",
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+
+    try {
+      const res = await fetch(`${import.meta.env.VITE_LARAVEL_API}/services`, {
+        method: "POST",
+        headers: {
+          "Content-type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token()}`,
+        },
+        body: JSON.stringify(newData),
+      });
+
+      const result = await res.json();
+
+      Swal.close(); // Close loading modal
+
+      if (result.status === true) {
+        toast.success(result.message);
+        navigate("/admin/services");
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error) {
+      Swal.close();
+      toast.error("An error occurred. Please try again.");
+      console.error(error);
     }
-    // console.log(result);
   };
 
   const handleFile = async (e) => {
+    setImageLoading(true);
     const formData = new FormData();
     const file = e.target.files[0];
+
+    if (!file) {
+      toast.error("No file selected.");
+      setImageLoading(false);
+      return;
+    }
+
+    setPreviewUrl(URL.createObjectURL(file));
+
     formData.append("image", file);
 
-    const res = await fetch(`${import.meta.env.VITE_LARAVEL_API}/temp-images`, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${token()}`,
-      },
-      body: JSON.stringify(newData),
-    });
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_LARAVEL_API}/temp-images`,
+        {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token()}`,
+          },
+          body: formData,
+        }
+      );
+
+      const result = await res.json();
+
+      if (result.status === false) {
+        toast.error(result.errors.image[0]);
+        setPreviewUrl(null);
+      } else {
+        // toast.success("Image uploaded successfully.");
+        setImageID(result.data.id);
+      }
+    } catch (error) {
+      toast.error("Failed to upload image.");
+      setPreviewUrl(null);
+      console.error(error);
+    } finally {
+      setImageLoading(false);
+    }
   };
 
   return (
@@ -93,7 +160,10 @@ const Create = ({ placeholder }) => {
                   </div>
                   <hr />
 
-                  <form action="" onSubmit={handleSubmit(onSubmit)}>
+                  <form
+                    onSubmit={handleSubmit(onSubmit)}
+                    className={`${loading ? "pe-none" : ""}`}
+                  >
                     <div className="mb-3">
                       <label htmlFor="" className="form-label">
                         Name
@@ -139,7 +209,7 @@ const Create = ({ placeholder }) => {
                         Description
                       </label>
                       <textarea
-                        {...register("description")}
+                        {...register("short_description")}
                         className="form-control"
                         rows={4}
                         placeholder="Description"
@@ -166,23 +236,60 @@ const Create = ({ placeholder }) => {
                       <input type="file" onChange={handleFile} />
                     </div>
 
+                    {imageLoading ? (
+                      <div className="mb-3">
+                        <label className="form-label">Preview</label>
+                        <div className="image-placeholder">
+                          <div className="image-shimmer"></div>
+                        </div>
+                      </div>
+                    ) : previewUrl ? (
+                      <div className="mb-3">
+                        <label className="form-label">Preview</label>
+                        <div className="image-placeholder">
+                          <img
+                            src={previewUrl}
+                            alt="Preview"
+                            style={{
+                              width: "200px",
+                              height: "200px",
+                              objectFit: "cover",
+                              borderRadius: "8px",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ) : null}
+
                     <div className="mb-3">
                       <label htmlFor="" className="form-label">
                         Status
                       </label>
-                      <select
-                        {...register("status")}
-                        name=""
-                        id=""
-                        className="form-control"
-                      >
+                      <select {...register("status")} className="form-control">
                         <option value="1">Active</option>
                         <option value="0">Inactive</option>
                       </select>
                     </div>
 
-                    <button className="btn btn-primary" type="submit">
-                      Submit
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      disabled={loading || imageLoading}
+                    >
+                      {loading || imageLoading ? (
+                        <>
+                          <span
+                            className="spinner-border spinner-border-sm me-2"
+                            role="status"
+                            aria-hidden="true"
+                          ></span>
+                          {imageLoading
+                            ? "Uploading Image..."
+                            : "Submitting..."}
+                        </>
+                      ) : (
+                        "Submit"
+                      )}
                     </button>
                   </form>
                 </div>

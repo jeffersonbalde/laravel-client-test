@@ -4,10 +4,16 @@ import AdminSidebar from "../../layout/AdminSidebar";
 import Footer from "../../layout/Footer";
 import { token } from "../../../utils/http";
 import { Link } from "react-router-dom";
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
+import { toast } from "react-toastify";
 
 const Show = () => {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+
+  const MySwal = withReactContent(Swal);
 
   const fetchServices = async () => {
     setLoading(true);
@@ -27,6 +33,62 @@ const Show = () => {
       console.error("Error fetching services:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteServices = async (id) => {
+    if (deleting) return;
+
+    const confirmResult = await MySwal.fire({
+      title: "Are you sure?",
+      text: "You won't be able to revert this!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete it!",
+    });
+
+    if (confirmResult.isConfirmed) {
+      setDeleting(true);
+
+      Swal.fire({
+        title: "Deleting...",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_LARAVEL_API}/services/${id}`,
+          {
+            method: "DELETE",
+            headers: {
+              "Content-type": "application/json",
+              Accept: "application/json",
+              Authorization: `Bearer ${token()}`,
+            },
+          }
+        );
+
+        const result = await res.json();
+        Swal.close(); // Close the loading modal
+
+        if (result.status === true) {
+          toast.success(result.message);
+          await fetchServices(); // Refresh list
+        } else {
+          toast.error(result.message);
+        }
+      } catch (error) {
+        Swal.close();
+        toast.error("An error occurred. Please try again.");
+      } finally {
+        setDeleting(false);
+      }
     }
   };
 
@@ -100,15 +162,20 @@ const Show = () => {
                               {service.status == 1 ? "Active" : "Inactive"}
                             </td>
                             <td>
-                              <a href="#" className="btn btn-primary btn-sm">
-                                Edit
-                              </a>
-                              <a
-                                href="#"
-                                className="btn btn-secondary btn-sm ms-2"
-                              >
-                                Delete
-                              </a>
+                              <div className="d-flex gap-2">
+                                <Link
+                                  to={`/admin/services/edit/${service.id}`}
+                                  className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1"
+                                >
+                                  <i className="bi bi-pencil-square"></i> Edit
+                                </Link>
+                                <button
+                                  onClick={() => deleteServices(service.id)}
+                                  className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
+                                >
+                                  <i className="bi bi-trash"></i> Delete
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))
@@ -119,8 +186,30 @@ const Show = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>  
       </main>
+
+      {/* {deleting && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "rgba(0,0,0,0.4)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div className="text-center text-white">
+            <div className="spinner-border text-light" role="status"></div>
+            <div className="mt-3 fw-bold">Deleting service, please wait...</div>
+          </div>
+        </div>
+      )} */}
 
       <Footer />
     </div>
